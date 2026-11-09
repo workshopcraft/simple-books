@@ -460,7 +460,8 @@ final class QuestSlots {
         QuestDefs.Book qb = bookOf(chapter);
         if (qb == null) return;
         List<QuestDefs.Quest> vis = QuestBook.visible(qb, chapter);
-        if (vis.isEmpty()) {
+        boolean editing = QuestEdit.active();
+        if (vis.isEmpty() && !editing) {
             s.text(tr("simplebooks.quest.none"), x, y + 8, 1, s.color("$soft"));
             return;
         }
@@ -475,6 +476,10 @@ final class QuestSlots {
             maxC = Math.max(maxC, c[0]);
             maxR = Math.max(maxR, c[1]);
         }
+        if (vis.isEmpty()) {
+            minC = maxC = 0;
+            minR = maxR = 0;
+        }
         float gw = (maxC - minC + 1) * CELL_W, gh = (maxR - minR + 1) * CELL_H;
         float maxX = Math.max(0, gw + 2 * PAD - w), maxY = Math.max(0, gh + 2 * PAD - h);
         float[] o = panned.computeIfAbsent(chapter, k -> new float[2]);
@@ -485,7 +490,6 @@ final class QuestSlots {
         s.clip(x, y, x + w, y + h);
         QuestDefs.Chapter ch = qb.chapters().get(chapter);
         List<QuestDefs.Decoration> decos = ch == null ? List.of() : ch.decorations();
-        boolean editing = QuestEdit.active();
         if (!editing) {
             for (QuestDefs.Decoration d : decos) if (d.layer().equals("behind")) decoration(d, ox, oy);
         } else {
