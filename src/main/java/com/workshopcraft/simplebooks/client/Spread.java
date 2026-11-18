@@ -549,7 +549,7 @@ public class Spread {
             boolean hover = mx >= W - 22 && mx < W - 22 + TAB_OUT + 10 && my >= y && my < y + h;
             float out = TAB_OUT + (i == current || hover ? 10 : 0), x1 = W - 22 + out;
             boolean shut = false;
-            for (Book.Page p : book.pages()) if (p.section().equals(t.section()) && p.json().has("locked")) shut = true;
+            for (Book.Page p : book.pages()) if (p.section().equals(t.section()) && questLocked(p.json())) shut = true;
             if (UnlockClient.sectionGreyed(book, t.section())) shut = true;
             if (shut) label = Component.translatable("simplebooks.quest.chapter_tab_locked", label);
             int col = color(shut ? "$closed" : t.color() != null ? t.color() : palette[i % palette.length].trim());
@@ -1443,6 +1443,13 @@ public class Spread {
 
     // ---------- contents ----------
 
+    /** Quest chapter pages set locked to true; gated pages use show or hide. */
+    private static boolean questLocked(JsonObject o) {
+        if (o == null || !o.has("locked")) return false;
+        JsonElement e = o.get("locked");
+        return e.isJsonPrimitive() && e.getAsJsonPrimitive().isBoolean() && e.getAsBoolean();
+    }
+
     private static String contentTitle(Book.Page p) {
         if (p.json().has("contents_title")) return p.json().get("contents_title").getAsString();
         return p.json().has("title") ? p.json().get("title").getAsString() : p.id().getPath();
@@ -1450,7 +1457,7 @@ public class Spread {
 
     /** "done/total" for a quest chapter's list page, or null. */
     private static @Nullable String progress(Book.Page p) {
-        if (!p.json().has("chapter") || p.json().has("locked")) return null;
+        if (!p.json().has("chapter") || questLocked(p.json())) return null;
         int[] dt = QuestBook.progress(p.json().get("chapter").getAsString());
         return dt == null ? null : dt[0] + "/" + dt[1];
     }
@@ -1458,7 +1465,7 @@ public class Spread {
     private Component contentNum(Book.Page p) {
         String pr = progress(p);
         String n = String.valueOf(book.pageNumber(p.id()));
-        if (p.json().has("locked")) return Component.translatable("simplebooks.quest.chapter_locked").append("   " + n);
+        if (questLocked(p.json())) return Component.translatable("simplebooks.quest.chapter_locked").append("   " + n);
         return Component.literal(pr == null ? n : pr + "   " + n);
     }
 
@@ -1505,7 +1512,7 @@ public class Spread {
                     float nw = textW(num, 1), indent = gated ? 26 : 8, maxw = colW - 16 - indent - nw;
                     List<FormattedCharSequence> ls = wrap(label, maxw - 12, 1);
                     cut(label, ls.size(), 2);
-                    int col = p.broken() ? color("$error") : color(gated || p.json().has("locked") ? "$locked" : "$link");
+                    int col = p.broken() ? color("$error") : color(gated || questLocked(p.json()) ? "$locked" : "$link");
                     if (gated) lockIcon(cx + 8, yy + 2, 14, col);
                     int n = Math.min(2, ls.size());
                     for (int j = 0; j < n; j++) {
@@ -1547,7 +1554,12 @@ public class Spread {
             text(ln, x + (CW - tw) / 2, yy, 1, col);
             yy += 20;
         }
-        body[half != null && onRight ? 1 : 0] = true;
+        if (half == null) {
+            body[0] = true;
+            body[1] = true;
+        } else {
+            body[onRight ? 1 : 0] = true;
+        }
     }
 
     private void lockIcon(float x, float y, float s, int col) {
