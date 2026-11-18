@@ -143,6 +143,7 @@
   "simplebooks.board.title": "The board",
   "simplebooks.unlock.item": "Find %s to unlock",
   "simplebooks.unlock.tag": "Find %s to unlock",
+  "simplebooks.unlock.tag_any": "Find any %s to unlock",
   "simplebooks.unlock.advancement": "Complete %s to unlock",
   "simplebooks.unlock.or": "%s or %s"
 }

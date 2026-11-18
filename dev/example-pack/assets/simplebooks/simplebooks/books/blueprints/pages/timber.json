@@ -4,7 +4,7 @@
   "unlock_on": { "tag": "minecraft:logs" },
   "title": "Timber",
   "subtitle": "Shown locked until you pick up any log",
-  "text": "This page unlocks when you first have any item in the minecraft:logs tag, such as an oak log. The tag name is used in the default hint when one exists, otherwise the first item in the tag.",
+  "text": "This page unlocks when you first have any item in the minecraft:logs tag, such as an oak log. The tag name is used in the default hint when one exists, otherwise a readable form of the tag path such as 'Find any log to unlock'.",
   "right_title": "Notes",
   "steps": [
     { "kind": "text", "text": "Any log counts. Planks do not." }

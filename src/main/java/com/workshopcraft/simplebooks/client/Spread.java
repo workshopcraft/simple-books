@@ -129,6 +129,35 @@ public class Spread {
         }
     }
 
+    /** Shown-locked ink: $locked when it contrasts with the page, otherwise $soft, $ink, or white/black. */
+    int gatedColor() {
+        int page = color("$page");
+        int locked = color("$locked");
+        if (contrastRatio(locked, page) >= 4.0) return locked;
+        int soft = color("$soft");
+        if (contrastRatio(soft, page) >= 4.0) return soft;
+        int ink = color("$ink");
+        if (contrastRatio(ink, page) >= 4.0) return ink;
+        return relativeLuma(page) < 0.5 ? 0xFFFFFFFF : 0xFF1A120C;
+    }
+
+    private static double relativeLuma(int argb) {
+        double r = srgb(((argb >> 16) & 255) / 255.0);
+        double g = srgb(((argb >> 8) & 255) / 255.0);
+        double b = srgb((argb & 255) / 255.0);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    private static double srgb(double u) {
+        return u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+    }
+
+    private static double contrastRatio(int a, int b) {
+        double l1 = relativeLuma(a), l2 = relativeLuma(b);
+        double hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
     private static int rgb(int r, int gr, int b) {
         return 0xFF000000 | r << 16 | gr << 8 | b;
     }
@@ -1037,7 +1066,7 @@ public class Spread {
                 List<FormattedCharSequence> ls = wrap(hint, w - 24, 1);
                 float eh = Math.max(24, ls.size() * 20);
                 if (placed && yy + eh > bottom + 8) break;
-                int gc = color("$locked");
+                int gc = gatedColor();
                 if (draw) {
                     lockIcon(x, yy + 2, 14, gc);
                     for (int j = 0; j < ls.size(); j++) text(ls.get(j), x + 22, yy + j * 20, 1, gc);
@@ -1429,7 +1458,7 @@ public class Spread {
             cut(label, ls.size(), max);
             float lh = 17 * sc, yy = ly + 18 - n * lh / 2 + 1;
             Identifier target = l.has("page") ? BookRegistry.resolveLink(book, l.get("page").getAsString()) : null;
-            int col = color(UnlockClient.greyed(l) || (target != null && UnlockClient.pageGreyed(book, target)) ? "$locked" : "$link");
+            int col = UnlockClient.greyed(l) || (target != null && UnlockClient.pageGreyed(book, target)) ? gatedColor() : color("$link");
             for (int j = 0; j < n; j++) {
                 float tw = textW(ls.get(j), sc), ty = yy + j * lh;
                 text(ls.get(j), tx, ty, sc, col);
@@ -1512,7 +1541,7 @@ public class Spread {
                     float nw = textW(num, 1), indent = gated ? 26 : 8, maxw = colW - 16 - indent - nw;
                     List<FormattedCharSequence> ls = wrap(label, maxw - 12, 1);
                     cut(label, ls.size(), 2);
-                    int col = p.broken() ? color("$error") : color(gated || questLocked(p.json()) ? "$locked" : "$link");
+                    int col = p.broken() ? color("$error") : (gated || questLocked(p.json()) ? gatedColor() : color("$link"));
                     if (gated) lockIcon(cx + 8, yy + 2, 14, col);
                     int n = Math.min(2, ls.size());
                     for (int j = 0; j < n; j++) {
@@ -1541,7 +1570,7 @@ public class Spread {
 
     private void lockedPage() {
         float x = half != null && onRight ? R : L;
-        int col = color("$locked");
+        int col = gatedColor();
         Component title = page.json().has("title") ? Texts.of(page.json().get("title").getAsString()) : Component.empty();
         if (!title.getString().isEmpty()) text(title, x, PT + 20, 1.4f, col);
         float cx = x + CW / 2f, cy = PT + 280;

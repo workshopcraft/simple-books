@@ -4,16 +4,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.workshopcraft.simplebooks.SimpleBooks;
 import com.workshopcraft.simplebooks.UnlockCondition;
+import com.workshopcraft.simplebooks.UnlockHints;
 import com.workshopcraft.simplebooks.UnlockWatchPacket;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
@@ -173,7 +170,7 @@ public final class UnlockClient {
     public static Component hintOf(UnlockCondition c) {
         return switch (c.kind()) {
             case ITEM -> Component.translatable("simplebooks.unlock.item", itemName(c.id()));
-            case TAG -> Component.translatable("simplebooks.unlock.tag", tagName(c.id()));
+            case TAG -> tagHint(c.id());
             case ADVANCEMENT -> Component.translatable("simplebooks.unlock.advancement", advancementName(c.id()));
         };
     }
@@ -215,12 +212,12 @@ public final class UnlockClient {
         return Component.literal(id.getPath().replace('_', ' '));
     }
 
-    private static Component tagName(Identifier id) {
+    private static Component tagHint(Identifier id) {
         String key = "tag.item." + id.getNamespace() + "." + id.getPath().replace('/', '.');
-        if (Language.getInstance().has(key)) return Component.translatable(key);
-        for (Holder<Item> h : BuiltInRegistries.ITEM.getTagOrEmpty(TagKey.create(Registries.ITEM, id)))
-            return new ItemStack(h).getHoverName();
-        return Component.literal("#" + id);
+        if (Language.getInstance().has(key))
+            return Component.translatable("simplebooks.unlock.tag", Component.translatable(key));
+        return Component.translatable("simplebooks.unlock.tag_any",
+                UnlockHints.tagPhrase(id.getPath()));
     }
 
     private static Component advancementName(Identifier id) {
