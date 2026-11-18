@@ -48,7 +48,7 @@ public class QuestChapterEditScreen extends Screen {
         decorations = box(x, y, o.has("decorations") ? o.get("decorations").toString() : "[]");
         decorations.setWidth(300); y += 36;
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(cx - 100, y, 90, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> minecraft.setScreen(parent)).bounds(cx + 10, y, 90, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> QuestEdit.openScreen(parent)).bounds(cx + 10, y, 90, 20).build());
     }
 
     private void mark(String name, int x, int y) {
@@ -86,7 +86,7 @@ public class QuestChapterEditScreen extends Screen {
         }
         SimpleBooks.toServerEdit.accept(new QuestEditPacket("put_chapter", chapterId, o.toString()));
         QuestEdit.status = "Saved chapter " + QuestEdit.shortName(chapterId) + ".";
-        minecraft.setScreen(parent);
+        QuestEdit.openScreen(parent);
     }
 
     private static String str(JsonObject o, String key) {
@@ -111,10 +111,21 @@ public class QuestChapterEditScreen extends Screen {
         }
         if (!error.isEmpty()) gg.text(font, Component.literal(error), 20, height - 30, 0xFF5555, false);
     }
-    //?} else {
+    //?} else if >=1.20.2 {
     /*@Override
     public void render(net.minecraft.client.gui.GuiGraphics gg, int mouseX, int mouseY, float a) {
         renderBackground(gg, mouseX, mouseY, a);
+        super.render(gg, mouseX, mouseY, a);
+        for (int i = 0; i < labels.size(); i++) {
+            int[] p = labels.get(i);
+            gg.drawString(font, labelNames.get(i), p[0], p[1], 0xA0A0A0);
+        }
+        if (!error.isEmpty()) gg.drawString(font, error, 20, height - 30, 0xFF5555);
+    }
+    *///?} else {
+    /*@Override
+    public void render(net.minecraft.client.gui.GuiGraphics gg, int mouseX, int mouseY, float a) {
+        renderBackground(gg);
         super.render(gg, mouseX, mouseY, a);
         for (int i = 0; i < labels.size(); i++) {
             int[] p = labels.get(i);

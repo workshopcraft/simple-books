@@ -122,7 +122,13 @@ public class SimpleBooksFabric implements ModInitializer {
         Unlocks.sender = SimpleBooksFabric::sendUnlocks;
         QuestEditor.sendDefs = SimpleBooksFabric::sendQuests;
         QuestEditor.sendLang = (player, pkt) -> {
+            //? if >=1.20.5 {
             if (ServerPlayNetworking.canSend(player, QuestLangPacket.TYPE)) ServerPlayNetworking.send(player, pkt);
+            //?} else {
+            /*net.minecraft.network.FriendlyByteBuf buf = net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+            pkt.write(buf);
+            ServerPlayNetworking.send(player, QuestLangPacket.ID, buf);
+            *///?}
         };
         QuestPlugins.run(FabricLoader.getInstance().getEntrypoints("simplebooks", SimpleBooksPlugin.class));
     }

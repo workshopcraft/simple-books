@@ -102,7 +102,7 @@ public class QuestEditScreen extends Screen {
 
         int by = height - 28;
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(width / 2 - 100, by, 90, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> minecraft.setScreen(parent)).bounds(width / 2 + 10, by, 90, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> QuestEdit.openScreen(parent)).bounds(width / 2 + 10, by, 90, 20).build());
     }
 
     private int layoutTask(int y, int index, JsonObject json, int count) {
@@ -443,7 +443,7 @@ public class QuestEditScreen extends Screen {
         }
         SimpleBooks.toServerEdit.accept(new QuestEditPacket("put_quest", questId, draft.toString()));
         QuestEdit.status = "Saved " + QuestEdit.shortName(questId) + ".";
-        minecraft.setScreen(parent);
+        QuestEdit.openScreen(parent);
     }
 
     private static void prunePlaceholders(JsonArray a, boolean tasks) {
@@ -536,10 +536,45 @@ public class QuestEditScreen extends Screen {
         }
         return super.mouseReleased(e);
     }
-    //?} else {
+    //?} else if >=1.20.2 {
     /*@Override
     public void render(net.minecraft.client.gui.GuiGraphics gg, int mouseX, int mouseY, float a) {
         renderBackground(gg, mouseX, mouseY, a);
+        super.render(gg, mouseX, mouseY, a);
+        chrome(new Gfx(gg));
+    }
+
+    @Override
+    public boolean mouseClicked(double x, double y, int button) {
+        if (button == 0 && barHit(x, y)) {
+            barDrag = true;
+            scrollTo(y);
+            return true;
+        }
+        return super.mouseClicked(x, y, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+        if (barDrag) {
+            scrollTo(y);
+            return true;
+        }
+        return super.mouseDragged(x, y, button, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(double x, double y, int button) {
+        if (barDrag) {
+            barDrag = false;
+            return true;
+        }
+        return super.mouseReleased(x, y, button);
+    }
+    *///?} else {
+    /*@Override
+    public void render(net.minecraft.client.gui.GuiGraphics gg, int mouseX, int mouseY, float a) {
+        renderBackground(gg);
         super.render(gg, mouseX, mouseY, a);
         chrome(new Gfx(gg));
     }

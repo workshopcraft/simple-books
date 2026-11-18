@@ -104,7 +104,7 @@ public class QuestPoolEditScreen extends Screen {
         }
         int by = height - 28;
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(width / 2 - 100, by, 90, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> minecraft.setScreen(parent)).bounds(width / 2 + 10, by, 90, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> QuestEdit.openScreen(parent)).bounds(width / 2 + 10, by, 90, 20).build());
     }
 
     private void mark(String name, int x, int y) {
@@ -170,7 +170,7 @@ public class QuestPoolEditScreen extends Screen {
         }
         SimpleBooks.toServerEdit.accept(new QuestEditPacket("put_pool", poolId, draft.toString()));
         QuestEdit.status = "Saved pool " + QuestEdit.shortName(poolId) + ".";
-        minecraft.setScreen(parent);
+        QuestEdit.openScreen(parent);
     }
 
     private QuestDefs.@Nullable Pool find() {
@@ -191,10 +191,21 @@ public class QuestPoolEditScreen extends Screen {
         }
         if (!error.isEmpty()) gg.text(font, Component.literal(error), 20, height - 44, 0xFF5555, false);
     }
-    //?} else {
+    //?} else if >=1.20.2 {
     /*@Override
     public void render(net.minecraft.client.gui.GuiGraphics gg, int mouseX, int mouseY, float a) {
         renderBackground(gg, mouseX, mouseY, a);
+        super.render(gg, mouseX, mouseY, a);
+        for (int i = 0; i < labels.size(); i++) {
+            int[] p = labels.get(i);
+            gg.drawString(font, labelNames.get(i), p[0], p[1], 0xA0A0A0);
+        }
+        if (!error.isEmpty()) gg.drawString(font, error, 20, height - 44, 0xFF5555);
+    }
+    *///?} else {
+    /*@Override
+    public void render(net.minecraft.client.gui.GuiGraphics gg, int mouseX, int mouseY, float a) {
+        renderBackground(gg);
         super.render(gg, mouseX, mouseY, a);
         for (int i = 0; i < labels.size(); i++) {
             int[] p = labels.get(i);

@@ -79,6 +79,10 @@ public class SimpleBooksFabricClient implements ClientModInitializer {
             QuestSyncPacket p = QuestSyncPacket.read(buf);
             client.execute(p::handle);
         });
+        ClientPlayNetworking.registerGlobalReceiver(QuestLangPacket.ID, (client, handler, buf, sender) -> {
+            QuestLangPacket p = QuestLangPacket.read(buf);
+            client.execute(p::handle);
+        });
         ClientPlayNetworking.registerGlobalReceiver(UnlockSyncPacket.ID, (client, handler, buf, sender) -> {
             UnlockSyncPacket p = UnlockSyncPacket.read(buf);
             client.execute(p::handle);

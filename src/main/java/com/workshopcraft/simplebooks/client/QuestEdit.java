@@ -7,6 +7,7 @@ import com.workshopcraft.simplebooks.quest.QuestClientStore;
 import com.workshopcraft.simplebooks.quest.QuestDefs;
 import com.workshopcraft.simplebooks.quest.QuestEditPacket;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -110,17 +111,17 @@ final class QuestEdit {
                 }
                 case "props" -> {
                     if (selected == null) status = "Select a quest to edit.";
-                    else Minecraft.getInstance().setScreen(new QuestEditScreen(selected, Minecraft.getInstance().screen));
+                    else openScreen(new QuestEditScreen(selected, currentScreen()));
                 }
                 case "chapter" -> {
                     String ch = selected == null ? null : chapterOf(selected);
                     if (ch == null) status = "Select a quest in the chapter to edit.";
-                    else Minecraft.getInstance().setScreen(new QuestChapterEditScreen(ch, Minecraft.getInstance().screen));
+                    else openScreen(new QuestChapterEditScreen(ch, currentScreen()));
                 }
                 case "pool" -> {
                     String pool = selected == null ? null : poolOf(selected);
                     if (pool == null) status = "Select a board/pool quest, or a quest in a board chapter.";
-                    else Minecraft.getInstance().setScreen(new QuestPoolEditScreen(pool, Minecraft.getInstance().screen));
+                    else openScreen(new QuestPoolEditScreen(pool, currentScreen()));
                 }
                 case "add_image" -> addDecoration(true);
                 case "add_text" -> addDecoration(false);
@@ -490,6 +491,26 @@ final class QuestEdit {
             if (c != null && "board".equals(c.layout())) return chId; // pool id often matches chapter
         }
         return null;
+    }
+
+
+    /** Open a screen on every supported target. On 26.2+ the setter lives on the GUI, not Minecraft. */
+    static void openScreen(@Nullable Screen screen) {
+        var mc = Minecraft.getInstance();
+        //? if >=26.2 {
+        /*mc.gui.setScreen(screen);
+        *///?} else {
+        mc.setScreen(screen);
+        //?}
+    }
+
+    static @Nullable Screen currentScreen() {
+        var mc = Minecraft.getInstance();
+        //? if >=26.2 {
+        /*return mc.gui.screen();
+        *///?} else {
+        return mc.screen;
+        //?}
     }
 
     static String shortName(String id) {
