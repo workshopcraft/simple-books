@@ -49,6 +49,7 @@ public final class QuestClientStore {
         state = new JsonObject();
         lang.clear();
         version++;
+        com.workshopcraft.simplebooks.client.UnlockClient.clear();
     }
 
     static void accept(QuestSyncPacket p) {

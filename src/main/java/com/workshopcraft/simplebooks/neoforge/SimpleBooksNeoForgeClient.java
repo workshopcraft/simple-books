@@ -5,6 +5,7 @@ import com.workshopcraft.simplebooks.client.BookRegistry;
 import com.workshopcraft.simplebooks.client.BookStandRenderer;
 import com.workshopcraft.simplebooks.client.HandInBoxRenderer;
 import com.workshopcraft.simplebooks.client.SimpleBooksClient;
+import com.workshopcraft.simplebooks.client.UnlockClient;
 import com.workshopcraft.simplebooks.registry.SimpleBooksContent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -28,6 +29,8 @@ public class SimpleBooksNeoForgeClient {
         SimpleBooks.toServer = ClientPacketDistributor::sendToServer;
         SimpleBooks.toServerAction = ClientPacketDistributor::sendToServer;
         SimpleBooks.toServerEdit = ClientPacketDistributor::sendToServer;
+        SimpleBooks.toServerWatch = ClientPacketDistributor::sendToServer;
+        SimpleBooks.toServerUnlockAdmin = ClientPacketDistributor::sendToServer;
         modBus.addListener((AddClientReloadListenersEvent e) -> e.addListener(BookRegistry.ID, new BookRegistry()));
         //?} else {
         /*SimpleBooks.toServer = p -> PacketDistributor.sendToServer(p);
@@ -36,6 +39,8 @@ public class SimpleBooksNeoForgeClient {
         *///?}
         modBus.addListener((EntityRenderersEvent.RegisterRenderers e) -> e.registerBlockEntityRenderer(SimpleBooksContent.STAND_ENTITY, BookStandRenderer::new));
         modBus.addListener((EntityRenderersEvent.RegisterRenderers e) -> e.registerBlockEntityRenderer(SimpleBooksContent.HAND_IN_BOX_ENTITY, HandInBoxRenderer::new));
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingIn e) ->
+                UnlockClient.sendWatch());
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut e) ->
                 com.workshopcraft.simplebooks.quest.QuestClientStore.clear());
         NeoForge.EVENT_BUS.addListener((RegisterClientCommandsEvent e) -> e.getDispatcher().register(SimpleBooksClient.command()));

@@ -19,11 +19,13 @@ public abstract class PlayerAdvancementsMixin {
     private void simplebooks$award(net.minecraft.advancements.AdvancementHolder a, String criterion, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ() && ((PlayerAdvancements) (Object) this).getOrStartProgress(a).isDone())
             QuestEngine.advancement(player, a.id().toString());
+            com.workshopcraft.simplebooks.Unlocks.advancement(player, a.id().toString());
     }
     //?} else {
     /*private void simplebooks$award(net.minecraft.advancements.Advancement a, String criterion, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ() && ((PlayerAdvancements) (Object) this).getOrStartProgress(a).isDone())
             QuestEngine.advancement(player, a.getId().toString());
+            com.workshopcraft.simplebooks.Unlocks.advancement(player, a.getId().toString());
     }
     *///?}
 }

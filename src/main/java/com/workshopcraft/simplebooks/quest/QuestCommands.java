@@ -155,8 +155,10 @@ public final class QuestCommands {
                 .then(dev())
                 .then(Commands.literal("reload-config").executes(c -> {
                     SimpleBooksConfig cfg = SimpleBooksConfig.load();
+                    com.workshopcraft.simplebooks.Unlocks.configLoaded();
                     ok(c, "Config: team_source " + cfg.teamSource() + ", first_join_book " + (cfg.firstJoinBook().isEmpty() ? "off" : cfg.firstJoinBook())
-                            + ", command_reward_permission " + cfg.commandRewardPermission());
+                            + ", command_reward_permission " + cfg.commandRewardPermission()
+                            + ", book_unlocks " + cfg.bookUnlocks());
                     return 1;
                 }));
     }

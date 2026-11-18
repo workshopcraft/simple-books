@@ -2,6 +2,10 @@ package com.workshopcraft.simplebooks.neoforge;
 
 import com.workshopcraft.simplebooks.ConfigPack;
 import com.workshopcraft.simplebooks.PageTurn;
+import com.workshopcraft.simplebooks.Unlocks;
+import com.workshopcraft.simplebooks.UnlockWatchPacket;
+import com.workshopcraft.simplebooks.UnlockSyncPacket;
+import com.workshopcraft.simplebooks.UnlockAdminPacket;
 import com.workshopcraft.simplebooks.SimpleBooks;
 import com.workshopcraft.simplebooks.quest.QuestActionPacket;
 import com.workshopcraft.simplebooks.quest.QuestEditPacket;
@@ -59,6 +63,9 @@ public class SimpleBooksNeoForge {
         QuestEditor.sendLang = (p, pkt) -> {
             if (p.connection.hasChannel(QuestLangPacket.TYPE)) PacketDistributor.sendToPlayer(p, pkt);
         };
+        Unlocks.sender = (p, x) -> {
+            if (p.connection.hasChannel(UnlockSyncPacket.TYPE)) PacketDistributor.sendToPlayer(p, x);
+        };
         ConfigPack.createFolders();
         modBus.addListener((RegisterEvent e) -> {
             e.register(Registries.DATA_COMPONENT_TYPE, h -> SimpleBooksContent.registerComponents(h::register));
@@ -73,7 +80,10 @@ public class SimpleBooksNeoForge {
                 .playToServer(QuestEditPacket.TYPE, QuestEditPacket.STREAM_CODEC, (payload, ctx) -> payload.handle((ServerPlayer) ctx.player()))
                 .playToClient(QuestDefsPacket.TYPE, QuestDefsPacket.STREAM_CODEC, (payload, ctx) -> payload.handle())
                 .playToClient(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC, (payload, ctx) -> payload.handle())
-                .playToClient(QuestLangPacket.TYPE, QuestLangPacket.STREAM_CODEC, (payload, ctx) -> payload.handle()));
+                .playToClient(QuestLangPacket.TYPE, QuestLangPacket.STREAM_CODEC, (payload, ctx) -> payload.handle())
+                .playToServer(UnlockWatchPacket.TYPE, UnlockWatchPacket.STREAM_CODEC, (payload, ctx) -> payload.handle((ServerPlayer) ctx.player()))
+                .playToServer(UnlockAdminPacket.TYPE, UnlockAdminPacket.STREAM_CODEC, (payload, ctx) -> payload.handle((ServerPlayer) ctx.player()))
+                .playToClient(UnlockSyncPacket.TYPE, UnlockSyncPacket.STREAM_CODEC, (payload, ctx) -> payload.handle()));
         modBus.addListener((InterModProcessEvent e) -> QuestPlugins.run(
                 InterModComms.getMessages(SimpleBooks.MOD_ID, "plugin"::equals).map(m -> m.messageSupplier().get()).toList()));
         modBus.addListener((BuildCreativeModeTabContentsEvent e) -> {

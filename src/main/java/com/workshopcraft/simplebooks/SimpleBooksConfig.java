@@ -15,8 +15,8 @@ import java.nio.file.Path;
 import java.util.Set;
 
 /** config/simplebooks.json, read on every server start. */
-public record SimpleBooksConfig(String teamSource, String firstJoinBook, boolean handInBox, int commandRewardPermission) {
-    public static final SimpleBooksConfig DEFAULT = new SimpleBooksConfig("simplebooks", "", true, 2);
+public record SimpleBooksConfig(String teamSource, String firstJoinBook, boolean handInBox, int commandRewardPermission, boolean bookUnlocks) {
+    public static final SimpleBooksConfig DEFAULT = new SimpleBooksConfig("simplebooks", "", true, 2, true);
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static SimpleBooksConfig current = DEFAULT;
 
@@ -50,7 +50,7 @@ public record SimpleBooksConfig(String teamSource, String firstJoinBook, boolean
 
     static SimpleBooksConfig read(JsonObject o) {
         for (String k : o.keySet())
-            if (!Set.of("team_source", "first_join_book", "hand_in_box", "command_reward_permission").contains(k))
+            if (!Set.of("team_source", "first_join_book", "hand_in_box", "command_reward_permission", "book_unlocks").contains(k))
                 SimpleBooks.LOG.warn("simplebooks.json: unknown key {}", k);
         String team = str(o, "team_source", DEFAULT.teamSource);
         if (!team.equals("simplebooks") && com.workshopcraft.simplebooks.api.SimpleBooksApi.teamSource(team) == null) {
@@ -66,7 +66,11 @@ public record SimpleBooksConfig(String teamSource, String firstJoinBook, boolean
         JsonElement n = o.get("command_reward_permission");
         if (n instanceof JsonPrimitive p && p.isNumber() && p.getAsInt() >= 0 && p.getAsInt() <= 4) perm = p.getAsInt();
         else if (n != null) SimpleBooks.LOG.warn("simplebooks.json: command_reward_permission must be 0 to 4");
-        return new SimpleBooksConfig(team, str(o, "first_join_book", DEFAULT.firstJoinBook), box, perm);
+        boolean unlocks = DEFAULT.bookUnlocks;
+        JsonElement u = o.get("book_unlocks");
+        if (u instanceof JsonPrimitive up && up.isBoolean()) unlocks = up.getAsBoolean();
+        else if (u != null) SimpleBooks.LOG.warn("simplebooks.json: book_unlocks must be true or false");
+        return new SimpleBooksConfig(team, str(o, "first_join_book", DEFAULT.firstJoinBook), box, perm, unlocks);
     }
 
     private static String str(JsonObject o, String k, String def) {
@@ -83,6 +87,7 @@ public record SimpleBooksConfig(String teamSource, String firstJoinBook, boolean
         o.addProperty("first_join_book", firstJoinBook);
         o.addProperty("hand_in_box", handInBox);
         o.addProperty("command_reward_permission", commandRewardPermission);
+        o.addProperty("book_unlocks", bookUnlocks);
         return o;
     }
 }

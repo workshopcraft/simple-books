@@ -38,7 +38,21 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
     private static Loaded loaded = new Loaded(Map.of(), Map.of(), Map.of(), new HashMap<>());
 
     public static @Nullable Book get(Identifier id) {
+        Book b = raw(id);
+        return b == null ? null : UnlockClient.view(b);
+    }
+
+    public static @Nullable Book raw(Identifier id) {
         return QuestBook.get(id, loaded.books.get(id), loaded);
+    }
+
+    public static java.util.Collection<Book> rawBooks() {
+        java.util.ArrayList<Book> out = new java.util.ArrayList<>();
+        for (Identifier id : ids()) {
+            Book b = raw(id);
+            if (b != null) out.add(b);
+        }
+        return out;
     }
 
     public static Set<Identifier> ids() {
@@ -134,9 +148,12 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
             texture(vars.get("page_texture"), "book " + bookId + " /style/page_texture", manager, images);
             List<String> sections = new ArrayList<>();
             Set<String> hiddenSections = new java.util.HashSet<>();
+            if (json.has("locked"))
+                com.workshopcraft.simplebooks.UnlockCondition.checkLocked(json.get("locked"), "book /locked", bErrors::add);
             if (json.has("sections")) json.getAsJsonArray("sections").forEach(e -> {
                 sections.add(Book.sectionName(e));
                 if (!visible(e)) hiddenSections.add(Book.sectionName(e));
+                if (e.isJsonObject()) checkUnlockFields(e.getAsJsonObject(), "book /sections/" + Book.sectionName(e), bErrors);
             });
             Set<Identifier> hidden = new java.util.HashSet<>();
 
@@ -192,6 +209,8 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
     @Override
     protected void apply(Loaded data, ResourceManager manager, ProfilerFiller profiler) {
         loaded = data;
+        UnlockClient.forgetViews();
+        UnlockClient.sendWatch();
     }
 
     private static Template safeResolve(Identifier id, Map<Identifier, JsonObject> raw) {
@@ -225,6 +244,20 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
             errors.add(ptr + "/kind: unknown step kind '" + o.get("kind").getAsString() + "'");
         for (var e : o.entrySet()) {
             String p = ptr + "/" + e.getKey();
+            if (e.getKey().equals("unlock_on")) {
+                var cs = com.workshopcraft.simplebooks.UnlockCondition.parse(e.getValue(), p, errors::add);
+                for (var c : cs) warnUnlock(c, p);
+                continue;
+            }
+            if (e.getKey().equals("locked")) {
+                com.workshopcraft.simplebooks.UnlockCondition.checkLocked(e.getValue(), p, errors::add);
+                continue;
+            }
+            if (e.getKey().equals("unlock_hint")) {
+                if (!e.getValue().isJsonPrimitive() || !e.getValue().getAsJsonPrimitive().isString())
+                    errors.add(p + ": must be a lang key or text");
+                continue;
+            }
             if (ITEM_KEYS.contains(e.getKey())) items(e.getValue(), p);
             if (e.getValue().isJsonPrimitive() && (e.getKey().equals("image") || e.getKey().endsWith("_image")
                     || e.getValue().getAsString().endsWith(".png"))) {
@@ -245,6 +278,34 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
             for (int i = 0; i < e.getAsJsonArray().size(); i++) items(e.getAsJsonArray().get(i), ptr + "/" + i);
         } else if (e.isJsonPrimitive()) {
             if (!ItemRef.known(e.getAsString())) warn("unknown item " + e.getAsString() + " at " + ptr);
+        }
+    }
+
+    private static void checkUnlockFields(JsonObject o, String ptr, List<String> errors) {
+        if (o.has("unlock_on")) {
+            var cs = com.workshopcraft.simplebooks.UnlockCondition.parse(o.get("unlock_on"), ptr + "/unlock_on", errors::add);
+            for (var c : cs) warnUnlock(c, ptr + "/unlock_on");
+        }
+        if (o.has("locked")) com.workshopcraft.simplebooks.UnlockCondition.checkLocked(o.get("locked"), ptr + "/locked", errors::add);
+        if (o.has("unlock_hint") && (!o.get("unlock_hint").isJsonPrimitive() || !o.get("unlock_hint").getAsJsonPrimitive().isString()))
+            errors.add(ptr + "/unlock_hint: must be a lang key or text");
+    }
+
+    private static void warnUnlock(com.workshopcraft.simplebooks.UnlockCondition c, String ptr) {
+        switch (c.kind()) {
+            case ITEM -> {
+                if (!ItemRef.known(c.id().toString())) warn("unknown item " + c.id() + " at " + ptr);
+            }
+            case TAG -> {
+                boolean empty = true;
+                for (var ignored : net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(
+                        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, c.id()))) {
+                    empty = false;
+                    break;
+                }
+                if (empty) warn("unknown or empty tag " + c.id() + " at " + ptr);
+            }
+            case ADVANCEMENT -> { }
         }
     }
 

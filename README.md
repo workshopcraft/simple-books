@@ -2,7 +2,7 @@
 
 Guide books for Minecraft mods, written as JSON. Each mod ships its own pages; Simple Books draws them as a double-page parchment spread with real item icons and names, numbered steps joined by ink arrows, pictures and clickable links.
 
-Minecraft 1.20.1 (Forge, Fabric), 1.21.1, 26.1.2 and 26.3 (NeoForge, Fabric). Fabric needs Fabric API. Client side rendering; the guide item is registered on both sides. See [Versions](#versions) for what differs between them.
+Minecraft 1.20.1 (Forge, Fabric), 1.21.1, 26.1.2, 26.2 and 26.3 (NeoForge, Fabric). Fabric needs Fabric API. Client side rendering; the guide item is registered on both sides. See [Versions](#versions) for what differs between them.
 
 Status: 1.1.0 (multi-version build, `simplebooks:guide` recipe type). 1.0.x was 26.1 only.
 
@@ -27,6 +27,7 @@ Give a book by command: `/give @p simplebooks:guide[simplebooks:book="morefood:c
 | 1.20.1 | Forge, Fabric | 17 | root NBT |
 | 1.21.1 | NeoForge, Fabric | 21 | components |
 | 26.1.2 | NeoForge, Fabric | 25 | components |
+| 26.2 | NeoForge, Fabric | 25 | components |
 | 26.3 | NeoForge, Fabric | 25 | components |
 
 Book, page and template JSON, pictures, fonts and lang files are the same on every version, and so are their paths (`assets/<namespace>/simplebooks/...`). One resource pack or mod jar folder works everywhere; only `pack.mcmeta` and the data files below differ.
@@ -260,11 +261,12 @@ The book id is `yourmod:manual` and page ids are `yourmod:manual/intro`, `yourmo
 | `title` | lang key or text for the book |
 | `default_template` | template for pages that do not name one (`simplebooks:recipe` if unset) |
 | `style` | styling variables, see below |
-| `sections` | page order; a section is a name or an object with `id`, and optionally `title`, `color` and `icon` (for its tab), `"tab": false` and `requires` |
+| `sections` | page order; a section is a name or an object with `id`, and optionally `title`, `color` and `icon` (for its tab), `"tab": false`, `requires`, `unlock_on`, `locked` and `unlock_hint` |
 | `tabs` | `true` draws a chapter tab per section on the fore edge, except `contents` and empty or hidden sections. Click a tab to jump to the first page of that chapter. Default `false` |
 | `page_turn` | `false` turns off the page-turn animation. Default `true` |
 | `stand_cover`, `stand_page` | textures used when the book lies on a book stand |
 | `requires` | mod ids; the whole book is skipped unless all are loaded |
+| `locked` | default for gated pages: `show` (greyed, with a hint) or `hide` (removed like `requires`). Default `show` |
 | `contents_title` | lang key for the contents heading |
 | `flow` | `true` lays the book out page by page instead of one file per spread, see [Flowing pages](#flowing-pages). Default `false` |
 
@@ -366,11 +368,30 @@ Draw line art as white lines on a transparent PNG and set `"frame": false` so it
 
 Hidden pages are removed before the contents spread and page numbers are worked out, so numbering has no gaps, and links that point at a hidden page are dropped rather than reported. Another mod can add pages to your book the same way: it ships `assets/yourmod/simplebooks/books/manual/pages/othermod_crate.json` in its own jar with `"requires": ["othermod"]`, and the page appears only when both are installed.
 
-### 7. Book stand textures
+### 7. Gated pages
+
+`unlock_on` is allowed wherever `requires` is: a section (object form), a page, a step, or a links entry. `requires` is still checked first. The value is one condition or a list, and any one of them unlocks it:
+
+```json
+{ "unlock_on": { "item": "minecraft:apple" } }
+{ "unlock_on": { "tag": "minecraft:logs" } }
+{ "unlock_on": { "advancement": "minecraft:story/mine_stone" } }
+{ "unlock_on": [ { "item": "minecraft:apple" }, { "item": "minecraft:golden_apple" } ] }
+```
+
+Unlocks are per player and permanent: the first time that player has the item or tag, or completes the advancement, it is recorded in the world save and kept even if they drop the item. The client sends the server the conditions used by its loaded books (bounded and checked), because books are resource packs and a dedicated server may not see them.
+
+`locked` is `show` (default) or `hide`. A book's `locked` sets the default for its pages and entries. `show` keeps the page or entry in the book, greys it, hides its content and draws a hint. `unlock_hint` (a lang key or text) replaces the default hint, which is 'Find <item name> to unlock', the tag's name or first item, or 'Complete <advancement title> to unlock'. `hide` removes it for that player, like `requires`, and the contents and page numbers are worked out again. The contents marks shown-locked pages with a lock and greys them; links to those pages stay and open the locked page. The layout updates if something unlocks while the book is open.
+
+`config/simplebooks.json` has `book_unlocks` (default `true`). Set it to `false` to show everything. If Simple Books is not on the server (for example a client on a vanilla server), everything is treated as unlocked so nothing can get stuck. Operators can run `/simplebooks unlocks <player> list`, `reset` or `grant <item|tag|advancement>` (permission level 2). `/simplebooks validate` checks `unlock_on`: a bad shape is an error, an unknown item or advancement is a warning.
+
+The blueprint sample (`simplebooks:blueprints`) gates Apple Study on an apple, Timber on the `minecraft:logs` tag, First Stone on the Mine Stone advancement, and hides Secret Alloy until a diamond is picked up.
+
+### 8. Book stand textures
 
 `stand_cover` and `stand_page` are 16 x 16 textures (any size works, they are stretched) given as texture ids, with or without `textures/` and `.png`. The cover shows round the edge of the open book, the page texture under the titles and icons. A page can set `stand_left` and `stand_right` to show a picture instead of its titles and icons. Long titles shrink a little, then wrap to two lines, and only past that are they cut short. Set `stand_ink` when your paper is dark.
 
-### 8. Shipping a book as an optional dependency
+### 9. Shipping a book as an optional dependency
 
 Your book is plain resources, so a mod with a book needs no code changes and still runs without Simple Books (see [Optional integration](#optional-integration)). To hand players the book, add a `simplebooks:guide` recipe with a load condition so it only exists when Simple Books is installed (examples per version in [Recipes, loot and advancements](#recipes-loot-and-advancements)). A vanilla crafting recipe with the result `{ "id": "simplebooks:guide", "components": { "simplebooks:book": "yourmod:manual" } }` still works on 1.21.1 and later. Declare Simple Books as a suggested or optional dependency in `fabric.mod.json` (`"suggests"`), `neoforge.mods.toml` (`type = "optional"`) or the Forge 1.20.1 `mods.toml` (`mandatory = false`).
 
@@ -607,7 +628,7 @@ A player who leaves or is kicked becomes a team named after them and keeps a cop
 `config/simplebooks.json`, written with defaults on first start and read again with `/sbquests reload-config`:
 
 ```json
-{ "team_source": "simplebooks", "first_join_book": "", "hand_in_box": true, "command_reward_permission": 2 }
+{ "team_source": "simplebooks", "first_join_book": "", "hand_in_box": true, "command_reward_permission": 2, "book_unlocks": true }
 ```
 
 | Key | Use |
@@ -616,6 +637,7 @@ A player who leaves or is kicked becomes a team named after them and keeps a cop
 | `first_join_book` | a book id such as `mypack:journal`. Every player gets it once on their first join with this set. Empty turns it off |
 | `hand_in_box` | `false` makes hand-in boxes accept nothing |
 | `command_reward_permission` | permission level for `command` rewards (default 2) |
+| `book_unlocks` | `false` shows every gated page and entry, as if they were already unlocked. Default `true` |
 
 ### Requires and overrides
 
@@ -746,6 +768,7 @@ SimpleBooksApi.registerTeamSource("myparties", player -> Parties.partyIdOf(playe
 - `/simplebooks open <book> [page]`
 - `/simplebooks validate <book>`
 - `/simplebooks list`
+- `/simplebooks unlocks <player> list|reset` and `/simplebooks unlocks <player> grant <item|tag|advancement>` (operators, sent to the server)
 
 ## Development
 

@@ -5,6 +5,7 @@ import com.workshopcraft.simplebooks.client.BookRegistry;
 import com.workshopcraft.simplebooks.client.BookStandRenderer;
 import com.workshopcraft.simplebooks.client.HandInBoxRenderer;
 import com.workshopcraft.simplebooks.client.SimpleBooksClient;
+import com.workshopcraft.simplebooks.client.UnlockClient;
 import com.workshopcraft.simplebooks.registry.SimpleBooksContent;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
@@ -19,6 +20,10 @@ final class SimpleBooksForgeClient {
         SimpleBooksClient.init();
         SimpleBooks.toServer = SimpleBooksForge.CHANNEL::sendToServer;
         SimpleBooks.toServerAction = SimpleBooksForge.CHANNEL::sendToServer;
+        SimpleBooks.toServerWatch = SimpleBooksForge.CHANNEL::sendToServer;
+        SimpleBooks.toServerUnlockAdmin = SimpleBooksForge.CHANNEL::sendToServer;
+        MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingIn e) ->
+                UnlockClient.sendWatch());
         MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingOut e) ->
                 com.workshopcraft.simplebooks.quest.QuestClientStore.clear());
         modBus.addListener((RegisterClientReloadListenersEvent e) -> e.registerReloadListener(new BookRegistry()));

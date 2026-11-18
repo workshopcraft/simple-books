@@ -50,6 +50,7 @@ public final class QuestManager {
         checkRegistries(server, defs, null, p);
         checkConfig(config, defs, p);
         QuestEngine.start(server);
+        com.workshopcraft.simplebooks.Unlocks.start(server);
         QuestWorld w = QuestEngine.world();
         SimpleBooks.LOG.info("Quest save: {} teams, {} with progress", w.teams.size(), w.progress.size());
     }
@@ -243,6 +244,7 @@ public final class QuestManager {
                                 .executes(c -> validate(c, StringArgumentType.getString(c, "book")))));
         QuestCommands.addAdmin(root);
         d.register(root);
+        com.workshopcraft.simplebooks.Unlocks.registerCommands(d);
     }
 
     private static final int SHOW = 30;

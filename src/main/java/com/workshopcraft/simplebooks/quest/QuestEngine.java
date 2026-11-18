@@ -96,6 +96,7 @@ public final class QuestEngine {
         dirty.clear();
         shares.clear();
         HandInBoxes.invalidateAll();
+        com.workshopcraft.simplebooks.Unlocks.stop();
     }
 
     public static @Nullable MinecraftServer server() {
@@ -165,6 +166,7 @@ public final class QuestEngine {
         int waiting = unclaimed(p, t);
         if (waiting > 0) toast(p, "rewards", "", waiting);
         changed(t);
+        com.workshopcraft.simplebooks.Unlocks.login(p);
     }
 
     public static void logout(ServerPlayer p) {
@@ -179,6 +181,7 @@ public final class QuestEngine {
 
     public static void tick(MinecraftServer s) {
         if (server != s) return;
+        com.workshopcraft.simplebooks.Unlocks.tick(s);
         if (++ticks % 20 != 0) return;
         Set<Team> teams = new LinkedHashSet<>();
         for (ServerPlayer p : s.getPlayerList().getPlayers()) teams.add(team(p));

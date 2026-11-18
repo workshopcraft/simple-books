@@ -2,6 +2,10 @@ package com.workshopcraft.simplebooks.forge;
 
 import com.workshopcraft.simplebooks.ConfigPack;
 import com.workshopcraft.simplebooks.PageTurn;
+import com.workshopcraft.simplebooks.Unlocks;
+import com.workshopcraft.simplebooks.UnlockWatchPacket;
+import com.workshopcraft.simplebooks.UnlockSyncPacket;
+import com.workshopcraft.simplebooks.UnlockAdminPacket;
 import com.workshopcraft.simplebooks.quest.QuestActionPacket;
 import com.workshopcraft.simplebooks.quest.QuestDefsPacket;
 import com.workshopcraft.simplebooks.quest.QuestEngine;
@@ -76,7 +80,26 @@ public class SimpleBooksForge {
                     if (ctx.get().getSender() != null) msg.handle(ctx.get().getSender());
                 })
                 .add();
+        CHANNEL.messageBuilder(UnlockWatchPacket.class, 4, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(UnlockWatchPacket::write).decoder(UnlockWatchPacket::read)
+                .consumerMainThread((msg, ctx) -> {
+                    if (ctx.get().getSender() != null) msg.handle(ctx.get().getSender());
+                })
+                .add();
+        CHANNEL.messageBuilder(UnlockSyncPacket.class, 5, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(UnlockSyncPacket::write).decoder(UnlockSyncPacket::read)
+                .consumerMainThread((msg, ctx) -> msg.handle())
+                .add();
+        CHANNEL.messageBuilder(UnlockAdminPacket.class, 6, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(UnlockAdminPacket::write).decoder(UnlockAdminPacket::read)
+                .consumerMainThread((msg, ctx) -> {
+                    if (ctx.get().getSender() != null) msg.handle(ctx.get().getSender());
+                })
+                .add();
         QuestEngine.sender = (p, x) -> {
+            if (CHANNEL.isRemotePresent(p.connection.connection)) CHANNEL.send(PacketDistributor.PLAYER.with(() -> p), x);
+        };
+        Unlocks.sender = (p, x) -> {
             if (CHANNEL.isRemotePresent(p.connection.connection)) CHANNEL.send(PacketDistributor.PLAYER.with(() -> p), x);
         };
         modBus.addListener((InterModProcessEvent e) -> QuestPlugins.run(

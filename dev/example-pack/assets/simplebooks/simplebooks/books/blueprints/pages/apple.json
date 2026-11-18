@@ -1,0 +1,12 @@
+{
+  "section": "research",
+  "sort": 1,
+  "unlock_on": { "item": "minecraft:apple" },
+  "title": "Apple Study",
+  "subtitle": "Shown locked until you pick up an apple",
+  "text": "This page stays in the book while it is locked. The contents line is grey and has a lock, and the page itself shows a hint instead of this text.\n\nPick up an apple to unlock it. Dropping the apple afterwards does not lock it again.",
+  "right_title": "Notes",
+  "steps": [
+    { "kind": "text", "text": "An apple is enough. You do not need to eat it or keep it." }
+  ]
+}

@@ -41,6 +41,7 @@
     "contents",
     { "id": "machines", "title": "Machines" },
     { "id": "parts", "title": "Parts" },
+    { "id": "research", "title": "Research" },
     { "id": "storage", "title": "Storage", "requires": ["muchmorestorage"], "icon": "muchmorestorage:screwdriver" },
     { "id": "motors", "title": "Motors", "requires": ["simplemachines"] }
   ]

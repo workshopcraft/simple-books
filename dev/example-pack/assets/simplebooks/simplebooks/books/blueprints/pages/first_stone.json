@@ -1,0 +1,12 @@
+{
+  "section": "research",
+  "sort": 3,
+  "unlock_on": { "advancement": "minecraft:story/mine_stone" },
+  "title": "First Stone",
+  "subtitle": "Shown locked until the Mine Stone advancement is done",
+  "text": "This page unlocks when you complete the vanilla Mine Stone advancement. An operator can also grant it with /simplebooks unlocks <player> grant advancement:minecraft:story/mine_stone.",
+  "right_title": "Notes",
+  "steps": [
+    { "kind": "text", "text": "Mining any stone with a pickaxe completes the advancement." }
+  ]
+}

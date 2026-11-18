@@ -5,6 +5,10 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.workshopcraft.simplebooks.SimpleBooks;
+import com.workshopcraft.simplebooks.UnlockAdminPacket;
+import com.workshopcraft.simplebooks.UnlockCondition;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -38,6 +42,16 @@ public final class SimpleBooksClient {
                 .then(LiteralArgumentBuilder.<S>literal("validate")
                         .then(RequiredArgumentBuilder.<S, String>argument("book", StringArgumentType.greedyString()).suggests(books)
                                 .executes(ctx -> validate(StringArgumentType.getString(ctx, "book")))))
+                .then(LiteralArgumentBuilder.<S>literal("unlocks")
+                        .then(RequiredArgumentBuilder.<S, String>argument("player", StringArgumentType.word())
+                                .then(LiteralArgumentBuilder.<S>literal("list").executes(ctx ->
+                                        unlocks("list", StringArgumentType.getString(ctx, "player"), "")))
+                                .then(LiteralArgumentBuilder.<S>literal("reset").executes(ctx ->
+                                        unlocks("reset", StringArgumentType.getString(ctx, "player"), "")))
+                                .then(LiteralArgumentBuilder.<S>literal("grant")
+                                        .then(RequiredArgumentBuilder.<S, String>argument("target", StringArgumentType.greedyString())
+                                                .executes(ctx -> unlocks("grant", StringArgumentType.getString(ctx, "player"),
+                                                        StringArgumentType.getString(ctx, "target")))))))
                 .then(LiteralArgumentBuilder.<S>literal("list").executes(ctx -> {
                     say(Component.literal(BookRegistry.ids().size() + " book(s): " + String.join(", ", BookRegistry.ids().stream().map(Identifier::toString).toList())));
                     return 1;
@@ -63,13 +77,24 @@ public final class SimpleBooksClient {
 
     private static int validate(String arg) {
         Identifier id = Identifier.tryParse(arg.trim());
-        Book b = id == null ? null : BookRegistry.get(id);
+        Book b = id == null ? null : BookRegistry.raw(id);
         if (b == null) {
             say(Component.translatable("simplebooks.unknown_book", arg).withStyle(ChatFormatting.RED));
             return 0;
         }
         int bad = 0;
         for (String e : b.errors()) say(Component.literal(e).withStyle(ChatFormatting.RED));
+        List<String> warnings = new ArrayList<>();
+        unlockIssues(b.json(), "book", b.errors(), warnings);
+        if (b.json().has("sections")) {
+            int i = 0;
+            for (JsonElement s : b.json().getAsJsonArray("sections")) {
+                unlockIssues(s, "book /sections/" + i, b.errors(), warnings);
+                i++;
+            }
+        }
+        for (Book.Page p : b.pages()) unlockIssues(p.json(), p.file(), p.errors(), warnings);
+        for (String w : warnings) say(Component.literal(w).withStyle(ChatFormatting.YELLOW));
         var font = Minecraft.getInstance().font;
         Flow f = b.errors().isEmpty() ? b.flow() : null;
         int last = f != null ? f.pages() - 1 : b.pages().size() * 2 - 1;
@@ -107,6 +132,54 @@ public final class SimpleBooksClient {
         String count = f != null ? f.pages() + " page(s) on " + f.spreads() + " spread(s), " : b.pages().size() + " page(s), ";
         say(Component.literal(count + (bad + b.errors().size()) + " problem(s)"));
         return 1;
+    }
+
+    private static int unlocks(String action, String player, String target) {
+        if (Minecraft.getInstance().getConnection() == null) {
+            say(Component.literal("Not connected to a server").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+        SimpleBooks.toServerUnlockAdmin.accept(new UnlockAdminPacket(action, player, target == null ? "" : target));
+        return 1;
+    }
+
+    private static void unlockIssues(JsonElement el, String ptr, List<String> errors, List<String> warnings) {
+        if (el == null) return;
+        if (el.isJsonArray()) {
+            for (int i = 0; i < el.getAsJsonArray().size(); i++)
+                unlockIssues(el.getAsJsonArray().get(i), ptr + "/" + i, errors, warnings);
+            return;
+        }
+        if (!el.isJsonObject()) return;
+        JsonObject o = el.getAsJsonObject();
+        if (o.has("unlock_on")) {
+            var cs = UnlockCondition.parse(o.get("unlock_on"), ptr + "/unlock_on", errors::add);
+            for (var c : cs) switch (c.kind()) {
+                case ITEM -> {
+                    if (!ItemRef.known(c.id().toString())) warnings.add(ptr + "/unlock_on: unknown item " + c.id());
+                }
+                case TAG -> {
+                    boolean empty = true;
+                    for (var ignored : net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(
+                            net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, c.id()))) {
+                        empty = false;
+                        break;
+                    }
+                    if (empty) warnings.add(ptr + "/unlock_on: unknown or empty tag " + c.id());
+                }
+                case ADVANCEMENT -> {
+                    String path = c.id().getPath().replace('/', '.');
+                    String k1 = "advancements." + path + ".title";
+                    String k2 = "advancements." + c.id().getNamespace() + "." + path + ".title";
+                    var lang = net.minecraft.locale.Language.getInstance();
+                    if (!lang.has(k1) && !lang.has(k2))
+                        warnings.add(ptr + "/unlock_on: unknown advancement " + c.id());
+                }
+            }
+        }
+        if (o.has("locked")) UnlockCondition.checkLocked(o.get("locked"), ptr + "/locked", errors::add);
+        for (var e : o.entrySet())
+            if (!e.getKey().equals("unlock_on")) unlockIssues(e.getValue(), ptr + "/" + e.getKey(), errors, warnings);
     }
 
     private static void say(Component c) {

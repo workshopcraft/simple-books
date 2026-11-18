@@ -1,6 +1,10 @@
 package com.workshopcraft.simplebooks.fabric;
 
 import com.workshopcraft.simplebooks.SimpleBooks;
+import com.workshopcraft.simplebooks.client.UnlockClient;
+import com.workshopcraft.simplebooks.UnlockWatchPacket;
+import com.workshopcraft.simplebooks.UnlockSyncPacket;
+import com.workshopcraft.simplebooks.UnlockAdminPacket;
 import com.workshopcraft.simplebooks.client.BookRegistry;
 import com.workshopcraft.simplebooks.client.BookStandRenderer;
 import com.workshopcraft.simplebooks.client.HandInBoxRenderer;
@@ -33,6 +37,8 @@ public class SimpleBooksFabricClient implements ClientModInitializer {
         SimpleBooks.toServer = ClientPlayNetworking::send;
         SimpleBooks.toServerAction = ClientPlayNetworking::send;
         SimpleBooks.toServerEdit = ClientPlayNetworking::send;
+        SimpleBooks.toServerWatch = ClientPlayNetworking::send;
+        SimpleBooks.toServerUnlockAdmin = ClientPlayNetworking::send;
         ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(BookRegistry.ID, new BookRegistry());
         //?} else if >=1.20.5 {
         /*SimpleBooks.toServer = ClientPlayNetworking::send;
@@ -50,19 +56,35 @@ public class SimpleBooksFabricClient implements ClientModInitializer {
             p.write(buf);
             ClientPlayNetworking.send(QuestActionPacket.ID, buf);
         };
+        SimpleBooks.toServerWatch = p -> {
+            net.minecraft.network.FriendlyByteBuf buf = net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+            p.write(buf);
+            ClientPlayNetworking.send(UnlockWatchPacket.ID, buf);
+        };
+        SimpleBooks.toServerUnlockAdmin = p -> {
+            net.minecraft.network.FriendlyByteBuf buf = net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+            p.write(buf);
+            ClientPlayNetworking.send(UnlockAdminPacket.ID, buf);
+        };
         ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new Books());
         *///?}
         //? if >=1.20.5 {
         ClientPlayNetworking.registerGlobalReceiver(QuestDefsPacket.TYPE, (payload, ctx) -> payload.handle());
         ClientPlayNetworking.registerGlobalReceiver(QuestSyncPacket.TYPE, (payload, ctx) -> payload.handle());
         ClientPlayNetworking.registerGlobalReceiver(QuestLangPacket.TYPE, (payload, ctx) -> payload.handle());
+        ClientPlayNetworking.registerGlobalReceiver(UnlockSyncPacket.TYPE, (payload, ctx) -> payload.handle());
         //?} else {
         /*ClientPlayNetworking.registerGlobalReceiver(QuestDefsPacket.ID, (client, handler, buf, sender) -> QuestDefsPacket.read(buf).handle());
         ClientPlayNetworking.registerGlobalReceiver(QuestSyncPacket.ID, (client, handler, buf, sender) -> {
             QuestSyncPacket p = QuestSyncPacket.read(buf);
             client.execute(p::handle);
         });
+        ClientPlayNetworking.registerGlobalReceiver(UnlockSyncPacket.ID, (client, handler, buf, sender) -> {
+            UnlockSyncPacket p = UnlockSyncPacket.read(buf);
+            client.execute(p::handle);
+        });
         *///?}
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(UnlockClient::sendWatch));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> QuestClientStore.clear());
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(SimpleBooksClient.command()));
         BlockEntityRendererRegistry.register(SimpleBooksContent.STAND_ENTITY, BookStandRenderer::new);

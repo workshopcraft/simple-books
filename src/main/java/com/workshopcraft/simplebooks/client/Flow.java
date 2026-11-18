@@ -29,12 +29,18 @@ public final class Flow {
     public static final class Cache {
         private @Nullable Flow flow, rough;
         private boolean building;
+        private int stamp = Integer.MIN_VALUE;
 
         /**
          * While measuring, page numbers come from the previous attempt (file order on the first one),
          * so the contents is measured again until the numbers settle.
          */
         @Nullable Flow get(Book book) {
+            int s = UnlockClient.stamp();
+            if (flow != null && stamp != s) {
+                flow = null;
+                rough = null;
+            }
             if (flow == null && !building) {
                 building = true;
                 try {
@@ -48,6 +54,7 @@ public final class Flow {
                         if (same) break;
                     }
                     flow = f;
+                    stamp = s;
                 } finally {
                     building = false;
                     rough = null;

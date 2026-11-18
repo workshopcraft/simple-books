@@ -550,6 +550,7 @@ public class Spread {
             float out = TAB_OUT + (i == current || hover ? 10 : 0), x1 = W - 22 + out;
             boolean shut = false;
             for (Book.Page p : book.pages()) if (p.section().equals(t.section()) && p.json().has("locked")) shut = true;
+            if (UnlockClient.sectionGreyed(book, t.section())) shut = true;
             if (shut) label = Component.translatable("simplebooks.quest.chapter_tab_locked", label);
             int col = color(shut ? "$closed" : t.color() != null ? t.color() : palette[i % palette.length].trim());
             fill(TAB_ROOT, y + 2, x1 - 2, y + h - 2, edge);
@@ -685,10 +686,11 @@ public class Spread {
         JsonElement list = page.json().get("steps");
         if (list == null || !list.isJsonArray()) return 0;
         for (JsonElement e : list.getAsJsonArray()) {
-            if (!e.isJsonObject() || !BookRegistry.visible(e)) continue;
+            if (!e.isJsonObject() || !UnlockClient.shown(e)) continue;
             JsonObject el = e.getAsJsonObject();
             String kind = str(el, "kind", "text");
             if (kind.equals("page_break")) continue;
+            if (UnlockClient.greyed(el)) return Math.max(24, wrap(UnlockClient.hintOf(el), CW, 1).size() * 20);
             boolean d = draw;
             draw = false;
             float h = element(el, kind, L, PT + 100, CW, 92);
@@ -706,6 +708,10 @@ public class Spread {
             return;
         }
         pageBackground();
+        if (UnlockClient.pageGreyed(book, page)) {
+            lockedPage();
+            return;
+        }
         Template t = page.template();
         if (half != null) {
             cursors.putAll(half.cursors());
@@ -1022,8 +1028,25 @@ public class Spread {
         boolean placed = false;
         while (i < a.size()) {
             JsonObject el = a.get(i).getAsJsonObject();
-            if (!BookRegistry.visible(el)) {
+            if (!UnlockClient.shown(el)) {
                 i++;
+                continue;
+            }
+            if (UnlockClient.greyed(el)) {
+                Component hint = UnlockClient.hintOf(el);
+                List<FormattedCharSequence> ls = wrap(hint, w - 24, 1);
+                float eh = Math.max(24, ls.size() * 20);
+                if (placed && yy + eh > bottom + 8) break;
+                int gc = color("$locked");
+                if (draw) {
+                    lockIcon(x, yy + 2, 14, gc);
+                    for (int j = 0; j < ls.size(); j++) text(ls.get(j), x + 22, yy + j * 20, 1, gc);
+                }
+                yy += eh + 8;
+                i++;
+                placed = true;
+                prevBadge = -1;
+                prev = null;
                 continue;
             }
             String kind = str(el, "kind", "text");
@@ -1378,10 +1401,11 @@ public class Spread {
     private float linkGrid(JsonArray all, float x, float y, float w, int cols) {
         JsonArray links = new JsonArray();
         for (JsonElement e : all) {
-            if (!BookRegistry.visible(e)) continue;
+            if (!UnlockClient.shown(e)) continue;
             JsonObject l = e.getAsJsonObject();
             Identifier to = l.has("page") ? BookRegistry.resolveLink(book, l.get("page").getAsString()) : null;
-            if (to == null || !book.hidden().contains(to)) links.add(e);
+            if (to != null && (book.hidden().contains(to) || UnlockClient.pageHidden(book, to))) continue;
+            links.add(e);
         }
         float tc = w / cols;
         int rows = 0;
@@ -1404,8 +1428,8 @@ public class Spread {
             int max = sc < 1 ? 3 : 2, n = Math.min(max, ls.size());
             cut(label, ls.size(), max);
             float lh = 17 * sc, yy = ly + 18 - n * lh / 2 + 1;
-            int col = color("$link");
             Identifier target = l.has("page") ? BookRegistry.resolveLink(book, l.get("page").getAsString()) : null;
+            int col = color(UnlockClient.greyed(l) || (target != null && UnlockClient.pageGreyed(book, target)) ? "$locked" : "$link");
             for (int j = 0; j < n; j++) {
                 float tw = textW(ls.get(j), sc), ty = yy + j * lh;
                 text(ls.get(j), tx, ty, sc, col);
@@ -1475,17 +1499,20 @@ public class Spread {
                     yy += 26;
                 } else {
                     Book.Page p = (Book.Page) r;
+                    boolean gated = UnlockClient.pageGreyed(book, p);
                     Component label = Texts.of(contentTitle(p));
                     Component num = contentNum(p);
-                    float nw = textW(num, 1), maxw = colW - 24 - nw;
+                    float nw = textW(num, 1), indent = gated ? 26 : 8, maxw = colW - 16 - indent - nw;
                     List<FormattedCharSequence> ls = wrap(label, maxw - 12, 1);
                     cut(label, ls.size(), 2);
-                    int col = p.broken() ? color("$error") : color(p.json().has("locked") ? "$locked" : "$link");
+                    int col = p.broken() ? color("$error") : color(gated || p.json().has("locked") ? "$locked" : "$link");
+                    if (gated) lockIcon(cx + 8, yy + 2, 14, col);
                     int n = Math.min(2, ls.size());
                     for (int j = 0; j < n; j++) {
                         float tw = Math.min(textW(ls.get(j), 1), maxw);
-                        text(ls.get(j), cx + 8 + (j > 0 ? 12 : 0), yy + j * 20, 1, col);
-                        fill(cx + 8 + (j > 0 ? 12 : 0), yy + j * 20 + 16, cx + 8 + (j > 0 ? 12 : 0) + tw - 2, yy + j * 20 + 18, col);
+                        float lx = cx + indent + (j > 0 ? 12 : 0);
+                        text(ls.get(j), lx, yy + j * 20, 1, col);
+                        fill(lx, yy + j * 20 + 16, lx + tw - 2, yy + j * 20 + 18, col);
                     }
                     String pr = progress(p);
                     if (pr != null) {
@@ -1503,6 +1530,34 @@ public class Spread {
         }
         cursors.put("$contents", i);
         contentsLeft = i < rows.size();
+    }
+
+    private void lockedPage() {
+        float x = half != null && onRight ? R : L;
+        int col = color("$locked");
+        Component title = page.json().has("title") ? Texts.of(page.json().get("title").getAsString()) : Component.empty();
+        if (!title.getString().isEmpty()) text(title, x, PT + 20, 1.4f, col);
+        float cx = x + CW / 2f, cy = PT + 280;
+        lockIcon(cx - 28, cy, 56, col);
+        Component hint = UnlockClient.hint(book, page);
+        List<FormattedCharSequence> ls = wrap(hint, CW - 40, 1);
+        float yy = cy + 72;
+        for (FormattedCharSequence ln : ls) {
+            float tw = textW(ln, 1);
+            text(ln, x + (CW - tw) / 2, yy, 1, col);
+            yy += 20;
+        }
+        body[half != null && onRight ? 1 : 0] = true;
+    }
+
+    private void lockIcon(float x, float y, float s, int col) {
+        float sh = Math.max(2, s * 0.12f);
+        fill(x + s * 0.22f, y, x + s * 0.22f + sh, y + s * 0.45f, col);
+        fill(x + s * 0.78f - sh, y, x + s * 0.78f, y + s * 0.45f, col);
+        fill(x + s * 0.22f, y, x + s * 0.78f, y + sh, col);
+        fill(x, y + s * 0.38f, x + s, y + s, col);
+        int hole = color("$page");
+        fill(x + s * 0.42f, y + s * 0.55f, x + s * 0.58f, y + s * 0.82f, hole);
     }
 
     // ---------- errors ----------
