@@ -1353,9 +1353,10 @@ public class Spread {
     }
 
     private float wideStep(JsonObject el, String kind, float x, float y, float w) {
-        int n = ++stepNo;
-        badge(x, y, n);
-        text(stepTitle(el), x + 34, y + 5, 1, color("$head"));
+        boolean numbered = flag(el, "number");
+        if (numbered) badge(x, y, ++stepNo);
+        float tx = numbered ? x + 34 : x;
+        text(stepTitle(el), tx, y + 5, 1, color("$head"));
         boolean textFirst = el.has("text_first") ? el.get("text_first").getAsBoolean() : kind.equals("assembly");
         float[] sz = size(el, kind.equals("assembly") ? 168 : 230, kind.equals("assembly") ? 94 : 112);
         boolean img = el.has("image") || el.has("placeholder");
@@ -1367,15 +1368,15 @@ public class Spread {
         if (!el.has("cells") && el.has("output")) cells.add(ItemRef.parse(el.get("output")));
         float yy;
         if (textFirst) {
-            float ph = body == null ? 0 : para(body, x + 34, y + 32, w - (img ? sz[0] + 50 : 34), 1, color("$ink"), 18, "left");
+            float ph = body == null ? 0 : para(body, tx, y + 32, w - (img ? sz[0] + 50 : (tx - x)), 1, color("$ink"), 18, "left");
             yy = y + Math.max(32 + ph, img ? sz[1] + 2 : 26) + 20;
-            yy = bigCells(cells, x + 34, yy, w - 34) + 15;
+            yy = bigCells(cells, tx, yy, w - (tx - x)) + 15;
         } else {
-            float rowX = x + 34, avail = w - 34 - (img ? sz[0] + 16 : 0);
-            yy = bigCells(cells, rowX, y + 38, avail);
+            float avail = w - (tx - x) - (img ? sz[0] + 16 : 0);
+            yy = bigCells(cells, tx, y + 38, avail);
             if (img) yy = Math.max(yy, y + 8 + sz[1]);
             yy += 14;
-            if (body != null) yy += para(body, x + 34, yy, w - 34, 1, color("$ink"), 17, "left") + 14;
+            if (body != null) yy += para(body, tx, yy, w - (tx - x), 1, color("$ink"), 17, "left") + 14;
         }
         return yy - y;
     }
