@@ -737,8 +737,10 @@ public class Spread {
             return;
         }
         pageBackground();
-        if (UnlockClient.pageGreyed(book, page)) {
-            lockedPage();
+        // measure the unlocked layout so a shown-locked entry keeps the same page count
+        if (UnlockClient.pageGreyed(book, page) && g != null) {
+            if (half == null || half.part() == 0) lockedPage();
+            else body[onRight ? 1 : 0] = true;
             return;
         }
         Template t = page.template();
