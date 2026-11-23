@@ -58,6 +58,30 @@ public final class UnlockClient {
         stamp++;
     }
 
+    /** Apply a local /simplebooks unlocks grant or reset so the book is already up to date when it reopens. */
+    public static void predict(String action, String player, String target) {
+        var mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        if (!player.equalsIgnoreCase(mc.player.getScoreboardName())) return;
+        if ("reset".equals(action)) {
+            if (have.isEmpty()) return;
+            have.clear();
+            views.clear();
+            stamp++;
+            return;
+        }
+        if (!"grant".equals(action) || target == null || target.isBlank()) return;
+        String raw = target.trim();
+        Identifier maybe = Identifier.tryParse(raw.startsWith("advancement:") ? raw.substring("advancement:".length()) : raw);
+        boolean item = Identifier.tryParse(raw) != null && BuiltInRegistries.ITEM.containsKey(Identifier.tryParse(raw));
+        boolean adv = maybe != null;
+        UnlockCondition c = UnlockCondition.parseGrant(raw, item, adv);
+        if (c != null && have.add(c.key())) {
+            views.clear();
+            stamp++;
+        }
+    }
+
     public static void sendWatch() {
         var mc = Minecraft.getInstance();
         if (mc == null || mc.getConnection() == null) return;

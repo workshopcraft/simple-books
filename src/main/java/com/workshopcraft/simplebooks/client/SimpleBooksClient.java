@@ -139,6 +139,7 @@ public final class SimpleBooksClient {
             say(Component.literal("Not connected to a server").withStyle(ChatFormatting.RED));
             return 0;
         }
+        UnlockClient.predict(action, player, target == null ? "" : target);
         SimpleBooks.toServerUnlockAdmin.accept(new UnlockAdminPacket(action, player, target == null ? "" : target));
         return 1;
     }
