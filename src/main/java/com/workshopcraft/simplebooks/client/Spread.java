@@ -268,6 +268,11 @@ public class Spread {
         return m;
     }
 
+    private boolean wordTooWide(Component c, float maxw, float sc) {
+        for (String w : c.getString().split(" ")) if (textW(Component.literal(w), sc) > maxw + 2) return true;
+        return false;
+    }
+
     private void cut(Component c, int lines, int max) {
         if (draw && g == null && lines > max) runtimeErrors.add("'" + c.getString() + "' needs " + lines + " lines, only " + max + " shown");
     }
@@ -310,7 +315,8 @@ public class Spread {
     }
 
     private void addLine(List<FormattedCharSequence> out, String line, int max) {
-        if (width(line) - 1 <= max + 12) out.add(styled(Component.literal(line)).getVisualOrderText());
+        if (width(line) - 1 <= max) out.add(styled(Component.literal(line)).getVisualOrderText());
+        else if (line.indexOf(' ') >= 0) out.add(styled(Component.literal(line)).getVisualOrderText());
         else out.addAll(font.split(styled(Component.literal(line)), max));
     }
 
@@ -1020,7 +1026,7 @@ public class Spread {
         slotItem(ref, x, y, 36);
         float nw = Math.max(nameW, 40), sc = 1;
         List<FormattedCharSequence> ls = wrap(ref.name(), nw, 1);
-        if (ls.size() > 2 || widest(ls, 1) > nw + 2) {
+        if (ls.size() > 2 || widest(ls, 1) > nw + 2 || wordTooWide(ref.name(), nw, 1)) {
             sc = 0.8f;
             ls = wrap(ref.name(), nw, sc);
         }
@@ -1399,7 +1405,7 @@ public class Spread {
         for (int i = 0; i < cells.size(); i++) {
             float lw = widest(wrap(cells.get(i).name(), lw0, 1), 1), cx = x + i * step, left = cx < SPINE ? L : R;
             float lx = Math.max(left, Math.min(left + CW - lw, cx + size / 2 - lw / 2));
-            if (lw > step - 8 || lx < lastRight + 6) sc = 0.8f;
+            if (lw > step - 8 || lx < lastRight + 6 || wordTooWide(cells.get(i).name(), lw0, 1)) sc = 0.8f;
             lastRight = lx + lw;
         }
         for (int i = 0; i < cells.size(); i++) {
@@ -1453,7 +1459,7 @@ public class Spread {
             float tx = ref != null ? lx + 42 : lx;
             float lw = tc - (tx - lx) - 4, sc = 1;
             List<FormattedCharSequence> ls = wrap(label, lw, 1);
-            if (ls.size() > 2 || widest(ls, 1) > lw + 2) {
+            if (ls.size() > 2 || widest(ls, 1) > lw + 2 || wordTooWide(label, lw, 1)) {
                 sc = 0.8f;
                 ls = wrap(label, lw, sc);
             }
