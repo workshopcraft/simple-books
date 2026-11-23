@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.workshopcraft.simplebooks.SimpleBooks;
 import com.workshopcraft.simplebooks.UnlockCondition;
+import com.workshopcraft.simplebooks.UnlockRule;
 import com.workshopcraft.simplebooks.UnlockHints;
 import com.workshopcraft.simplebooks.UnlockWatchPacket;
 import net.minecraft.client.Minecraft;
@@ -185,11 +186,41 @@ public final class UnlockClient {
     public static Component hintOf(JsonObject o) {
         if (o.has("unlock_hint") && o.get("unlock_hint").isJsonPrimitive())
             return Texts.of(o.get("unlock_hint").getAsString());
-        List<UnlockCondition> cs = o.has("unlock_on") ? UnlockCondition.parseQuiet(o.get("unlock_on")) : List.of();
-        if (cs.isEmpty()) return Component.translatable("simplebooks.unlock.item", "?");
-        Component out = hintOf(cs.get(0));
-        for (int i = 1; i < cs.size(); i++) out = Component.translatable("simplebooks.unlock.or", out, hintOf(cs.get(i)));
+        if (!o.has("unlock_on")) return Component.translatable("simplebooks.unlock.item", "?");
+        return hintOf(UnlockRule.parseQuiet(o.get("unlock_on")));
+    }
+
+    public static Component hintOf(UnlockRule rule) {
+        if (rule.mode() == UnlockRule.Mode.LEAF)
+            return rule.leaf() == null ? Component.translatable("simplebooks.unlock.item", "?") : hintOf(rule.leaf());
+        if (rule.mode() == UnlockRule.Mode.ALL) {
+            List<UnlockCondition> miss = rule.missing(have);
+            if (miss.isEmpty()) miss = rule.leaves();
+            if (miss.isEmpty()) return Component.translatable("simplebooks.unlock.item", "?");
+            Component names = leafName(miss.get(0));
+            for (int i = 1; i < miss.size(); i++)
+                names = names.copy().append(Component.literal(", ")).append(leafName(miss.get(i)));
+            boolean onlyAdv = true;
+            for (UnlockCondition c : miss) if (c.kind() != UnlockCondition.Kind.ADVANCEMENT) onlyAdv = false;
+            return Component.translatable(onlyAdv ? "simplebooks.unlock.advancement" : "simplebooks.unlock.all", names);
+        }
+        List<UnlockRule> kids = rule.children();
+        if (kids.isEmpty()) return Component.translatable("simplebooks.unlock.item", "?");
+        Component out = hintOf(kids.get(0));
+        for (int i = 1; i < kids.size(); i++) out = Component.translatable("simplebooks.unlock.or", out, hintOf(kids.get(i)));
         return out;
+    }
+
+    private static Component leafName(UnlockCondition c) {
+        return switch (c.kind()) {
+            case ITEM -> itemName(c.id());
+            case TAG -> {
+                String key = "tag.item." + c.id().getNamespace() + "." + c.id().getPath().replace('/', '.');
+                if (Language.getInstance().has(key)) yield Component.translatable(key);
+                yield Component.literal(UnlockHints.tagPhrase(c.id().getPath()));
+            }
+            case ADVANCEMENT -> advancementName(c.id());
+        };
     }
 
     public static Component hintOf(UnlockCondition c) {
@@ -219,10 +250,7 @@ public final class UnlockClient {
 
     private static boolean unlocked(JsonObject o) {
         if (showAll() || !o.has("unlock_on")) return true;
-        List<UnlockCondition> cs = UnlockCondition.parseQuiet(o.get("unlock_on"));
-        if (cs.isEmpty()) return true;
-        for (UnlockCondition c : cs) if (have.contains(c.key())) return true;
-        return false;
+        return UnlockRule.parseQuiet(o.get("unlock_on")).met(have);
     }
 
     private static List<Book.Page> rawPages(Book book) {

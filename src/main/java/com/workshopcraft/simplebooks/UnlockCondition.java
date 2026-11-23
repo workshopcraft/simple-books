@@ -1,12 +1,10 @@
 package com.workshopcraft.simplebooks;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -58,30 +56,14 @@ public record UnlockCondition(Kind kind, Identifier id) {
     }
 
     public static List<UnlockCondition> parse(JsonElement e, String ptr, @Nullable Consumer<String> error) {
-        List<UnlockCondition> out = new ArrayList<>();
-        if (e == null || e.isJsonNull()) {
-            fail(error, ptr, "must be a condition or a list of them");
-            return out;
-        }
-        if (e.isJsonArray()) {
-            JsonArray a = e.getAsJsonArray();
-            if (a.isEmpty()) fail(error, ptr, "must have at least one condition");
-            for (int i = 0; i < a.size(); i++) {
-                UnlockCondition c = one(a.get(i), ptr + "/" + i, error);
-                if (c != null) out.add(c);
-            }
-            return out;
-        }
-        UnlockCondition c = one(e, ptr, error);
-        if (c != null) out.add(c);
-        return out;
+        return UnlockRule.parse(e, ptr, error, null).leaves();
     }
 
     public static List<UnlockCondition> parseQuiet(JsonElement e) {
         return parse(e, "", null);
     }
 
-    private static @Nullable UnlockCondition one(JsonElement e, String ptr, @Nullable Consumer<String> error) {
+    static @Nullable UnlockCondition one(JsonElement e, String ptr, @Nullable Consumer<String> error) {
         if (e == null || !e.isJsonObject()) {
             fail(error, ptr, "must be an object with item, tag or advancement");
             return null;
@@ -112,7 +94,7 @@ public record UnlockCondition(Kind kind, Identifier id) {
         return new UnlockCondition(kind, id);
     }
 
-    private static void fail(@Nullable Consumer<String> error, String ptr, String msg) {
+    static void fail(@Nullable Consumer<String> error, String ptr, String msg) {
         if (error != null) error.accept((ptr == null || ptr.isEmpty() ? "unlock_on" : ptr) + ": " + msg);
     }
 

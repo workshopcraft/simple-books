@@ -249,8 +249,8 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
         for (var e : o.entrySet()) {
             String p = ptr + "/" + e.getKey();
             if (e.getKey().equals("unlock_on")) {
-                var cs = com.workshopcraft.simplebooks.UnlockCondition.parse(e.getValue(), p, errors::add);
-                for (var c : cs) warnUnlock(c, p);
+                var rule = com.workshopcraft.simplebooks.UnlockRule.parse(e.getValue(), p, errors::add, BookRegistry::warn);
+                for (var c : rule.leaves()) warnUnlock(c, p);
                 continue;
             }
             if (e.getKey().equals("locked")) {
@@ -287,8 +287,8 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
 
     private static void checkUnlockFields(JsonObject o, String ptr, List<String> errors) {
         if (o.has("unlock_on")) {
-            var cs = com.workshopcraft.simplebooks.UnlockCondition.parse(o.get("unlock_on"), ptr + "/unlock_on", errors::add);
-            for (var c : cs) warnUnlock(c, ptr + "/unlock_on");
+            var rule = com.workshopcraft.simplebooks.UnlockRule.parse(o.get("unlock_on"), ptr + "/unlock_on", errors::add, BookRegistry::warn);
+            for (var c : rule.leaves()) warnUnlock(c, ptr + "/unlock_on");
         }
         if (o.has("locked")) com.workshopcraft.simplebooks.UnlockCondition.checkLocked(o.get("locked"), ptr + "/locked", errors::add);
         if (o.has("unlock_hint") && (!o.get("unlock_hint").isJsonPrimitive() || !o.get("unlock_hint").getAsJsonPrimitive().isString()))

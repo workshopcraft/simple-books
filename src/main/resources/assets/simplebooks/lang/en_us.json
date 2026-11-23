@@ -145,5 +145,6 @@
   "simplebooks.unlock.tag": "Find %s to unlock",
   "simplebooks.unlock.tag_any": "Find any %s to unlock",
   "simplebooks.unlock.advancement": "Complete %s to unlock",
-  "simplebooks.unlock.or": "%s or %s"
+  "simplebooks.unlock.or": "%s or %s",
+  "simplebooks.unlock.all": "Find %s to unlock"
 }

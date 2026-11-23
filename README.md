@@ -370,22 +370,25 @@ Hidden pages are removed before the contents spread and page numbers are worked 
 
 ### 7. Gated pages
 
-`unlock_on` is allowed wherever `requires` is: a section (object form), a page, a step, or a links entry. `requires` is still checked first. The value is one condition or a list, and any one of them unlocks it:
+`unlock_on` is allowed wherever `requires` is: a section (object form), a page, a step, or a links entry. `requires` is still checked first. The value is one condition or a list, and any one of them unlocks it. `{ "all": [ ... ] }` unlocks only when every entry is met. You can nest an `all` group inside a list (any one of several all-groups), and `{ "any": [ ... ] }` is the same as a plain list. An empty `all` is a warning.
 
 ```json
 { "unlock_on": { "item": "minecraft:apple" } }
 { "unlock_on": { "tag": "minecraft:logs" } }
 { "unlock_on": { "advancement": "minecraft:story/mine_stone" } }
 { "unlock_on": [ { "item": "minecraft:apple" }, { "item": "minecraft:golden_apple" } ] }
+{ "unlock_on": { "all": [ { "item": "minecraft:wheat" }, { "item": "minecraft:apple" } ] } }
+{ "unlock_on": [ { "all": [ { "item": "minecraft:wheat" }, { "item": "minecraft:apple" } ] }, { "item": "minecraft:golden_apple" } ] }
+{ "unlock_on": { "any": [ { "item": "minecraft:apple" }, { "item": "minecraft:golden_apple" } ] } }
 ```
 
 Unlocks are per player and permanent: the first time that player has the item or tag, or completes the advancement, it is recorded in the world save and kept even if they drop the item. The client sends the server the conditions used by its loaded books (bounded and checked), because books are resource packs and a dedicated server may not see them.
 
-`locked` is `show` (default) or `hide`. A book's `locked` sets the default for its pages and entries. `show` keeps the page or entry in the book, greys it, hides its content and draws a hint. `unlock_hint` (a lang key or text) replaces the default hint, which is 'Find <item name> to unlock', the tag's lang name, or a readable form of the tag path such as 'Find any log to unlock', or 'Complete <advancement title> to unlock'. `hide` removes it for that player, like `requires`, and the contents and page numbers are worked out again. The contents marks shown-locked pages with a lock and greys them; links to those pages stay and open the locked page. The layout updates if something unlocks while the book is open.
+`locked` is `show` (default) or `hide`. A book's `locked` sets the default for its pages and entries. `show` keeps the page or entry in the book, greys it, hides its content and draws a hint. `unlock_hint` (a lang key or text) replaces the default hint, which is 'Find <item name> to unlock', the tag's lang name, or a readable form of the tag path such as 'Find any log to unlock', or 'Complete <advancement title> to unlock'. An `all` group lists what is still missing, for example 'Find wheat, apple to unlock'. `hide` removes it for that player, like `requires`, and the contents and page numbers are worked out again. The contents marks shown-locked pages with a lock and greys them; links to those pages stay and open the locked page. The layout updates if something unlocks while the book is open.
 
-`config/simplebooks.json` has `book_unlocks` (default `true`). Set it to `false` to show everything. If Simple Books is not on the server (for example a client on a vanilla server), everything is treated as unlocked so nothing can get stuck. Operators can run `/simplebooks unlocks <player> list`, `reset` or `grant <item|tag|advancement>` (permission level 2). `/simplebooks validate` checks `unlock_on`: a bad shape is an error, an unknown item or advancement is a warning.
+`config/simplebooks.json` has `book_unlocks` (default `true`). Set it to `false` to show everything. If Simple Books is not on the server (for example a client on a vanilla server), everything is treated as unlocked so nothing can get stuck. Operators can run `/simplebooks unlocks <player> list`, `reset` or `grant <item|tag|advancement>` (permission level 2). `/simplebooks validate` checks `unlock_on`: a bad shape is an error, an unknown item or advancement is a warning, and an empty `all` is a warning.
 
-The blueprint sample (`simplebooks:blueprints`) gates Apple Study on an apple, Timber on the `minecraft:logs` tag, First Stone on the Mine Stone advancement, and hides Secret Alloy until a diamond is picked up.
+The blueprint sample (`simplebooks:blueprints`) gates Apple Study on an apple, Timber on the `minecraft:logs` tag, First Stone on the Mine Stone advancement, Harvest Bundle on wheat and an apple together, and hides Secret Alloy until a diamond is picked up.
 
 ### 8. Book stand textures
 

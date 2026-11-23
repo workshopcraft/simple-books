@@ -7,6 +7,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.workshopcraft.simplebooks.SimpleBooks;
 import com.workshopcraft.simplebooks.UnlockAdminPacket;
 import com.workshopcraft.simplebooks.UnlockCondition;
+import com.workshopcraft.simplebooks.UnlockRule;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
@@ -154,8 +155,8 @@ public final class SimpleBooksClient {
         if (!el.isJsonObject()) return;
         JsonObject o = el.getAsJsonObject();
         if (o.has("unlock_on")) {
-            var cs = UnlockCondition.parse(o.get("unlock_on"), ptr + "/unlock_on", errors::add);
-            for (var c : cs) switch (c.kind()) {
+            var rule = UnlockRule.parse(o.get("unlock_on"), ptr + "/unlock_on", errors::add, warnings::add);
+            for (var c : rule.leaves()) switch (c.kind()) {
                 case ITEM -> {
                     if (!ItemRef.known(c.id().toString())) warnings.add(ptr + "/unlock_on: unknown item " + c.id());
                 }

@@ -1,0 +1,12 @@
+{
+  "section": "research",
+  "sort": 5,
+  "unlock_on": { "all": [ { "item": "minecraft:wheat" }, { "item": "minecraft:apple" } ] },
+  "title": "Harvest Bundle",
+  "subtitle": "Shown locked until you have both wheat and an apple",
+  "text": "This page unlocks only when every condition in unlock_on.all is met: wheat and an apple. A plain list still unlocks when any one condition is met. You can nest an all group inside a list so any one group unlocks it, and { \"any\": [ ... ] } is the same as a list.\n\nThe default hint lists what is still missing, for example 'Find wheat, apple to unlock'.",
+  "right_title": "Notes",
+  "steps": [
+    { "kind": "text", "text": "Both items are recorded the first time you have them. You can drop them afterwards." }
+  ]
+}
