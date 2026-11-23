@@ -160,13 +160,8 @@ public final class SimpleBooksClient {
                     if (!ItemRef.known(c.id().toString())) warnings.add(ptr + "/unlock_on: unknown item " + c.id());
                 }
                 case TAG -> {
-                    boolean empty = true;
-                    for (var ignored : net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(
-                            net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, c.id()))) {
-                        empty = false;
-                        break;
-                    }
-                    if (empty) warnings.add(ptr + "/unlock_on: unknown or empty tag " + c.id());
+                    if (BookRegistry.tagsReady() && BookRegistry.tagEmpty(c.id()))
+                        warnings.add(ptr + "/unlock_on: unknown or empty tag " + c.id());
                 }
                 case ADVANCEMENT -> {
                     String path = c.id().getPath().replace('/', '.');

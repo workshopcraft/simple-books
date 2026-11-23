@@ -36,6 +36,8 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
                          Map<Identifier, Template> templates) {}
 
     private static Loaded loaded = new Loaded(Map.of(), Map.of(), Map.of(), new HashMap<>());
+    private record TagWarn(net.minecraft.resources.Identifier id, String ptr) {}
+    private static final List<TagWarn> pendingTagWarns = new ArrayList<>();
 
     public static @Nullable Book get(Identifier id) {
         Book b = raw(id);
@@ -100,6 +102,7 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
 
     @Override
     protected Loaded prepare(ResourceManager manager, ProfilerFiller profiler) {
+        synchronized (pendingTagWarns) { pendingTagWarns.clear(); }
         Map<Identifier, JsonObject> rawTemplates = new HashMap<>();
         Map<Identifier, String> templateErrors = new HashMap<>();
         for (var e : manager.listResources("simplebooks/templates", id -> id.getPath().endsWith(".json")).entrySet()) {
@@ -211,6 +214,7 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
         loaded = data;
         UnlockClient.forgetViews();
         UnlockClient.sendWatch();
+        flushTagWarnings();
     }
 
     private static Template safeResolve(Identifier id, Map<Identifier, JsonObject> raw) {
@@ -291,19 +295,40 @@ public class BookRegistry extends SimplePreparableReloadListener<BookRegistry.Lo
             errors.add(ptr + "/unlock_hint: must be a lang key or text");
     }
 
+    static boolean tagsReady() {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        return mc != null && mc.level != null;
+    }
+
+    static boolean tagEmpty(Identifier id) {
+        for (var ignored : net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(
+                net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, id)))
+            return false;
+        return true;
+    }
+
+    static void flushTagWarnings() {
+        List<TagWarn> batch;
+        synchronized (pendingTagWarns) {
+            if (!tagsReady() || pendingTagWarns.isEmpty()) return;
+            batch = new ArrayList<>(pendingTagWarns);
+            pendingTagWarns.clear();
+        }
+        for (TagWarn w : batch)
+            if (tagEmpty(w.id())) warn("unknown or empty tag " + w.id() + " at " + w.ptr());
+    }
+
     private static void warnUnlock(com.workshopcraft.simplebooks.UnlockCondition c, String ptr) {
         switch (c.kind()) {
             case ITEM -> {
                 if (!ItemRef.known(c.id().toString())) warn("unknown item " + c.id() + " at " + ptr);
             }
             case TAG -> {
-                boolean empty = true;
-                for (var ignored : net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(
-                        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, c.id()))) {
-                    empty = false;
-                    break;
+                if (!tagsReady()) {
+                    synchronized (pendingTagWarns) { pendingTagWarns.add(new TagWarn(c.id(), ptr)); }
+                    return;
                 }
-                if (empty) warn("unknown or empty tag " + c.id() + " at " + ptr);
+                if (tagEmpty(c.id())) warn("unknown or empty tag " + c.id() + " at " + ptr);
             }
             case ADVANCEMENT -> { }
         }

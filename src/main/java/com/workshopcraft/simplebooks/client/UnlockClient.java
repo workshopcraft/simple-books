@@ -90,6 +90,7 @@ public final class UnlockClient {
         List<String> list = new ArrayList<>(keys);
         if (list.size() > UnlockCondition.MAX) list = list.subList(0, UnlockCondition.MAX);
         SimpleBooks.toServerWatch.accept(new UnlockWatchPacket(list));
+        BookRegistry.flushTagWarnings();
     }
 
     private static void collect(Book book, Set<String> keys) {
